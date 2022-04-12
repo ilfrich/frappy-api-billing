@@ -1,6 +1,6 @@
 from typing import List, Union, Dict, Tuple
 from datetime import datetime
-from flask import abort
+from flask import abort, make_response, Response
 from frappyapibilling.usage_store import AbstractUsageStore
 from frappyapibilling.quota_definitions import QuotaDefinition, QuotaException, QUOTA_DURATION_SORTING, QUOTA_UNLIMITED
 
@@ -96,3 +96,11 @@ class ApiBilling:
                     next_renew = renew
 
         return lowest_value, next_renew
+
+    def create_response_with_header(self, client_id: Union[str, int], response_body,
+                                    status_code: int = 200) -> Response:
+        lowest_quota, next_renew_datetime = self.get_lowest_quota(client_id=client_id)
+        response = make_response(response_body, status_code)
+        response.headers["X-RateLimit-Remaining"] = lowest_quota
+        response.headers["X-RateLimit-Reset"] = round(next_renew_datetime.timestamp())
+        return response

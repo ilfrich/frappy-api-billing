@@ -49,11 +49,6 @@ def fetch_expensive_data_api_handler():
     api_billing.track_client_usage(client_id=authenticated_client, credits_used=credits_used)  
     # run your method
     result = ...
-    # fetch remaining quota and next reset of the lowest quota definition
-    lowest_quota, next_renew_datetime = api_billing.get_lowest_quota(client_id=authenticated_client)
-    # create response with json result, 200 status code and corresponding headers
-    response = make_response(jsonify(result), 200)
-    response.headers["X-RateLimit-Remaining"] = lowest_quota
-    response.headers["X-RateLimit-Reset"] = round(next_renew_datetime.timestamp())
-    return response
+    # return a response with X-RateLimit-[Remaining|Reset] headers
+    return api_billing.create_response_with_header(client_id=authenticated_client, response_body=jsonify(result))
 ```
