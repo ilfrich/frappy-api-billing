@@ -28,8 +28,9 @@ _duration_seconds = {
 }
 
 
-class QuotaException:
-    def __init__(self, quota_remaining: Union[int, float], quota_renew: datetime):
+class QuotaException(BaseException):
+    def __init__(self, quota_remaining: Union[int, float] = None, quota_renew: datetime = None, custom_msg: str = None):
+        super().__init__(custom_msg)
         self.quota_remaining: Union[int, float] = quota_remaining
         self.quota_renew: datetime = quota_renew
 

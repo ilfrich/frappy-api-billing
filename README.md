@@ -52,3 +52,33 @@ def fetch_expensive_data_api_handler():
     # return a response with X-RateLimit-[Remaining|Reset] headers
     return api_billing.create_response_with_header(client_id=authenticated_client, response_body=jsonify(result))
 ```
+
+## Quota Definitions
+
+It is up to you, where and how you store quota definitions. The API Billing module does not store the quota definitions 
+ anywhere. 
+
+When your API starts up you need to fetch any pre-existing clients and their respective quota limits and 
+ create the quota definitions. The module will fetch existing usage and update the current renew interval with already 
+ used up credits.
+
+Likewise, while the API is running, if a new client registers, you can feed the quota definitions into the ApiBilling
+instance using the `update_client_quotas(client_id, quota_definitions: List[QuotdaDefinition])` method.
+
+## Error Handling
+
+The `track_client_usage` method will first check if sufficient credits are available. If not there are 2 possible 
+ behaviours:
+
+- by default a 429 will be returned to the caller with an error message and `RateLimit` headers
+- if the parameter `use_abort=False` is passed into the `track_client_usage` a `QuotaException` will be thrown and you
+ have to handle the error.
+
+A `QuotaException` has 2 fields storing `quota_remaining` (a number) and `quota_renew` (`datetime`) for the "shortest 
+ quota" - i.e. the quota definition with the fewest remaining credits.
+
+You can also pass the `QuotaException` instance into the `create_response_with_header` method of `ApiBilling` as the 
+ optional `exception` parameter, which can reduce required computation to determining the next renew and remaining 
+ credits. 
+
+Please note, all `datetime` objects are relative to the server's timezone.

@@ -1,4 +1,4 @@
-from typing import List, Union, Dict, Tuple
+from typing import List, Union, Dict, Tuple, Optional
 from datetime import datetime
 from flask import abort, make_response, Response
 from frappyapibilling.usage_store import AbstractUsageStore
@@ -29,14 +29,15 @@ class ApiBilling:
 
     def track_client_usage(self, client_id: Union[str, int], credits_used: Union[int, float] = 1, use_abort=True):
         if client_id not in self.clients:
-            raise QuotaException("You do not have any available quota.")
+            raise QuotaException(custom_msg="You do not have any available quota.")
         # check usage
         try:
             self._check_credits(client_id, credits_used)
         except QuotaException as qex:
             if use_abort is True:
-                abort(403, description=f"You have only {qex.quota_remaining} credits remaining, but {credits_used} are "
-                                       f"required. They will renew at {qex.quota_renew.strftime('%Y-%m-%d %H:%M:%S')}")
+                msg = f"You have only {qex.quota_remaining} credits remaining, but {credits_used} are required. " \
+                      f"They will renew at {qex.quota_renew.strftime('%Y-%m-%d %H:%M:%S')}"
+                abort(self.create_response_with_header(client_id, response_body=msg, status_code=429, exception=qex))
             else:
                 raise qex
 
@@ -98,9 +99,17 @@ class ApiBilling:
         return lowest_value, next_renew
 
     def create_response_with_header(self, client_id: Union[str, int], response_body,
-                                    status_code: int = 200) -> Response:
-        lowest_quota, next_renew_datetime = self.get_lowest_quota(client_id=client_id)
+                                    status_code: int = 200, exception: Optional[QuotaException] = None) -> Response:
+        if exception is None:
+            lowest_quota, next_renew_datetime = self.get_lowest_quota(client_id=client_id)
+        else:
+            lowest_quota, next_renew_datetime = exception.quota_remaining, exception.quota_renew
+
         response = make_response(response_body, status_code)
+        if next_renew_datetime is None:
+            # no quota available
+            return response
+        # set headers
         response.headers["X-RateLimit-Remaining"] = lowest_quota
         response.headers["X-RateLimit-Reset"] = round(next_renew_datetime.timestamp())
         return response
