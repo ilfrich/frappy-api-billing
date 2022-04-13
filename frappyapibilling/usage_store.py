@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Union, List
+from typing import Union, List, Optional
 
 
 class Usage:
@@ -37,9 +37,16 @@ class AbstractUsageStore(ABC):
         pass
 
     @abstractmethod
-    def get_total_usage(self, client_id, start_datetime: datetime, end_datetime: datetime) -> Union[float, int]:
+    def get_total_usage(self, client_id: Union[str, int], start_datetime: Optional[datetime] = None,
+                        end_datetime: Optional[datetime] = None) -> Union[float, int]:
         pass
 
     @abstractmethod
-    def get_daily_usage(self, client_id, start_datetime: datetime, end_datetime: datetime) -> List[Usage]:
+    def get_daily_usage(self, client_id: Union[str, int], start_datetime: Optional[datetime] = None,
+                        end_datetime: Optional[datetime] = None) -> List[Usage]:
+        pass
+
+    @abstractmethod
+    def delete_client_usage(self, client_id: Union[str, int], start_datetime: Optional[datetime] = None,
+                            end_datetime: Optional[datetime] = None):
         pass
