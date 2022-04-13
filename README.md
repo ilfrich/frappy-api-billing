@@ -8,6 +8,9 @@ API Quota and Billing System for Flask - compatible with the Frappy framework.
 - Usage store modules for Python can be found here:
     - [MongoDB Store](http://github.com/ilfrich/frappy-py-mongo-api-billing-store)
     - [SQL Store (SQL Alchemy)](http://github.com/ilfrich/frappy-py-sql-api-billing-store)
+    - You can also implement your own store for other databases, file-system storage or in-memory storage
+        - This requires a class that extends `from frappyapibilling import AbstractUsageStore` - see the SQL and Mongo 
+          implementations for examples
     
 ## Usage
 

@@ -29,6 +29,8 @@ class ApiBilling:
 
     def track_client_usage(self, client_id: Union[str, int], credits_used: Union[int, float] = 1, use_abort=True):
         if client_id not in self.clients:
+            if use_abort:
+                abort(403, description="You do not have any available quota")
             raise QuotaException(custom_msg="You do not have any available quota.")
         # check usage
         try:
@@ -43,36 +45,6 @@ class ApiBilling:
 
         # track credit usage
         self._track_usage(client_id, credits_used)
-
-    def _check_credits(self, client_id: Union[str, int], credits_required: Union[int, float]):
-        """
-        Finds the quota that has the fewest remaining credits. If a quota is found that has insufficient credits it is
-        immediately returned.
-        :param client_id:
-        :param credits_required:
-        """
-        # no quota restrictions for this client
-        definitions = self.clients.get(client_id, None)
-        if definitions is None:
-            return
-
-        # check the quota definitions for this client
-        for q_def in definitions:
-            # this will throw a QuotaException, if insufficient credits are available
-            q_def.check_credit_usage(credits_required)
-
-    def _track_usage(self, client_id, credits_used):
-        # no quota restrictions for this client
-        definitions = self.clients.get(client_id, None)
-        if definitions is None:
-            return
-
-        # check the quota definitions for this client
-        for q_def in definitions:
-            q_def.use_credits(credits_used)
-
-        # store in usage store
-        self.usage_store.track_usage(client_id, credits_used)
 
     def get_lowest_quota(self, client_id: Union[str, int]) -> Tuple[Union[float, int], datetime]:
         if client_id not in self.clients:
@@ -113,3 +85,44 @@ class ApiBilling:
         response.headers["X-RateLimit-Remaining"] = lowest_quota
         response.headers["X-RateLimit-Reset"] = round(next_renew_datetime.timestamp())
         return response
+
+    def delete_client_usage(self, client_id: Union[str, int], start_datetime: Optional[datetime] = None,
+                            end_datetime: Optional[datetime] = None):
+        # delete from store
+        self.usage_store.delete_client_usage(client_id, start_datetime, end_datetime)
+        # check if client id is in cache
+        if client_id not in self.clients:
+            return
+        # re-init cache (loads up2date usage from cache)
+        quotas = self.clients[client_id]
+        self.update_client_quotas(client_id, quotas)
+
+    def _check_credits(self, client_id: Union[str, int], credits_required: Union[int, float]):
+        """
+        Finds the quota that has the fewest remaining credits. If a quota is found that has insufficient credits it is
+        immediately returned.
+        :param client_id:
+        :param credits_required:
+        """
+        # no quota restrictions for this client
+        definitions = self.clients.get(client_id, None)
+        if definitions is None:
+            return
+
+        # check the quota definitions for this client
+        for q_def in definitions:
+            # this will throw a QuotaException, if insufficient credits are available
+            q_def.check_credit_usage(credits_required)
+
+    def _track_usage(self, client_id, credits_used):
+        # no quota restrictions for this client
+        definitions = self.clients.get(client_id, None)
+        if definitions is None:
+            return
+
+        # check the quota definitions for this client
+        for q_def in definitions:
+            q_def.use_credits(credits_used)
+
+        # store in usage store
+        self.usage_store.track_usage(client_id, credits_used)

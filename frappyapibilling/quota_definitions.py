@@ -67,7 +67,6 @@ class QuotaDefinition:
 
         if self.credits == QUOTA_UNLIMITED:
             return QUOTA_UNLIMITED, self.next_renew
-
         return self.credits - self.used_up, self.next_renew
 
     def _determine_renew_time(self) -> Tuple[datetime, datetime]:
