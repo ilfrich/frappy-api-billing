@@ -12,6 +12,15 @@ API Quota and Billing System for Flask - compatible with the Frappy framework.
         - This requires a class that extends `from frappyapibilling import AbstractUsageStore` - see the SQL and Mongo 
           implementations for examples
     
+## Installation
+
+```shell
+pip install frappyapibilling --user
+```
+
+Additionally you may require `frappysqlapibilling`, `frappymongoapibilling` or your own `AbstractUsageStore` 
+ implementation.
+
 ## Usage
 
 ```python
